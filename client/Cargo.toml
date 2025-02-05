@@ -1,0 +1,11 @@
+[package]
+name = "client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+argon2 = "0.5.3"
+reqwest = "0.12.12"
+ring = "0.17.8"
+serde = { version = "1.0", features = ["derive"] }
+shared = { path = "../shared"}
