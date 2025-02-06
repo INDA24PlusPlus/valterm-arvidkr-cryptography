@@ -5,7 +5,6 @@ use ring::{
 };
 use shared::EncryptedData;
 use shared::NonceGen;
-use shared::NonceSequence;
 
 fn get_key(key: String) -> UnboundKey {
     let salt = "skibidi toilet".as_bytes(); // static salt
