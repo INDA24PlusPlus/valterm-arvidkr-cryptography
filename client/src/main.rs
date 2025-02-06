@@ -1,8 +1,5 @@
 use argon2::Argon2;
-use ring::{
-    aead::{Aad, BoundKey, Nonce, NonceSequence, OpeningKey, SealingKey, UnboundKey, AES_256_GCM},
-    rand::{SecureRandom, SystemRandom},
-};
+use ring::aead::{Aad, BoundKey, OpeningKey, SealingKey, UnboundKey, AES_256_GCM};
 use shared::EncryptedData;
 use shared::NonceGen;
 
@@ -45,10 +42,47 @@ fn decrypt(key: String, encrypted_data: EncryptedData) -> Vec<u8> {
         .to_vec()
 }
 
+fn upload(filename: String, key: String) -> u32 {
+    let data = std::fs::read(filename).unwrap();
+    let enc = encrypt(key, data);
+
+    let client = reqwest::blocking::Client::new();
+    let res = client
+        .post("http://localhost:8080/upload")
+        .json(&enc)
+        .send()
+        .unwrap();
+
+    let id: u32 = res.json().unwrap();
+    id
+}
+
+fn download(key: String, id: u32) -> Vec<u8> {
+    let client = reqwest::blocking::Client::new();
+    let res = client
+        .get(format!("http://localhost:8080/download/{}", id))
+        .send()
+        .unwrap();
+
+    let enc: EncryptedData = res.json().unwrap();
+    decrypt(key, enc)
+}
+
 fn main() {
-    let data = "Jag älskar att spela fortnite".as_bytes().to_vec();
-    let enc = encrypt("password123".into(), data);
-    println!("Encrypted data: {:?}", enc);
-    let dec = decrypt("password123".into(), enc);
-    println!("Decrypted data: {}", String::from_utf8(dec).unwrap());
+    let args = std::env::args().collect::<Vec<String>>();
+    let method = &args[1];
+    let filename = &args[2];
+
+    if method == "upload" {
+        let key = args[3].clone();
+        let id = upload(filename.clone(), key);
+        println!("Uploaded file with id: {}", id);
+    } else if method == "download" {
+        let key = args[3].clone();
+        let id = args[4].parse::<u32>().unwrap();
+
+        let data = download(key, id);
+        std::fs::write(filename.clone(), data).unwrap();
+        println!("Downloaded file with id: {} to file {}", id, filename);
+    }
 }

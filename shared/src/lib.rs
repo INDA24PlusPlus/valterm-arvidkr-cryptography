@@ -1,23 +1,17 @@
-use serde::Deserialize;
 use ring::{
-    aead::{Aad, BoundKey, Nonce, NonceSequence, OpeningKey, SealingKey, UnboundKey, AES_256_GCM},
+    aead::{Nonce, NonceSequence},
     rand::{SecureRandom, SystemRandom},
 };
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
-pub struct FileUpload {
-    pub filedata: Vec<u8>,
-    pub signature: Vec<u8>,
-}
-
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct EncryptedData {
     pub data: Vec<u8>,
     pub tag: [u8; 16],
     pub nonce: NonceGen,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, Clone, Copy, Deserialize, Serialize)]
 pub struct NonceGen([u8; 12]);
 
 impl NonceGen {

@@ -1,26 +1,73 @@
-use actix_web::{post, web, HttpResponse, HttpServer, Responder};
-use shared::FileUpload;
+use std::sync::Mutex;
+
+use actix_web::{get, post, web, HttpResponse, HttpServer, Responder};
 use shared::EncryptedData;
 
-#[post("/upload")]
-async fn upload(_data: web::Json<FileUpload>) -> Result<impl Responder, actix_web::Error> {
-    Ok(HttpResponse::Ok().body("File uploaded"))
+struct GlobalState {
+    data: Vec<EncryptedData>,
+    counter: u32,
 }
 
-let global_data: Vec<EncryptedData> = Vec::new();
-let global_counter: i32 = -1;
+impl GlobalState {
+    fn new() -> Self {
+        GlobalState {
+            data: Vec::new(),
+            counter: 0,
+        }
+    }
 
-fn add_data(encdata: EncryptedData) -> i32 {
-    global_data.append(encdata);
-    global_counter += 1;
-    return global_counter;
+    fn append(&mut self, encdata: EncryptedData) -> u32 {
+        self.data.push(encdata);
+        self.counter += 1;
+        self.counter - 1
+    }
+}
+
+type AppState = web::Data<Mutex<GlobalState>>;
+
+#[post("/upload")]
+async fn upload(
+    state: AppState,
+    data: web::Json<EncryptedData>,
+) -> Result<impl Responder, actix_web::Error> {
+    let mut state = state.lock().unwrap();
+
+    let id = state.append(data.into_inner());
+
+    println!("Uploaded data with id {}", id);
+    println!("Data: {:?}", state.data);
+
+    Ok(HttpResponse::Ok().json(id))
+}
+
+#[get("/download/{id}")]
+async fn download(state: AppState, id: web::Path<i32>) -> Result<impl Responder, actix_web::Error> {
+    let state = state.lock().unwrap();
+    let id = *id;
+
+    println!("Getting data with id {}", id);
+
+    if id as usize >= state.data.len() {
+        return Ok(HttpResponse::NotFound().finish());
+    }
+
+    let data = &state.data[id as usize];
+
+    println!("Data: {:?}", data);
+
+    Ok(HttpResponse::Ok().json(data))
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| actix_web::App::new().service(upload))
-        .bind(("0.0.0.0", 8080))?
-        .run()
-        .await
+    let state = web::Data::new(Mutex::new(GlobalState::new()));
+    HttpServer::new(move || {
+        actix_web::App::new()
+            .app_data(state.clone())
+            .service(upload)
+            .service(download)
+    })
+    .bind(("0.0.0.0", 8080))?
+    .run()
+    .await
 }
-

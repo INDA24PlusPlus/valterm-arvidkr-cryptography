@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 argon2 = "0.5.3"
-reqwest = "0.12.12"
+reqwest = { version = "0.12.12", features = ["json", "blocking"] }
 ring = "0.17.8"
 serde = { version = "1.0", features = ["derive"] }
 shared = { path = "../shared"}
