@@ -7,10 +7,6 @@ use shared::EncryptedData;
 use shared::NonceGen;
 use shared::NonceSequence;
 
-#[derive(Debug, Copy, Clone)]
-
-#[derive(Debug)]
-
 fn get_key(key: String) -> UnboundKey {
     let salt = "skibidi toilet".as_bytes(); // static salt
     let a2 = Argon2::default();
