@@ -3,31 +3,13 @@ use ring::{
     aead::{Aad, BoundKey, Nonce, NonceSequence, OpeningKey, SealingKey, UnboundKey, AES_256_GCM},
     rand::{SecureRandom, SystemRandom},
 };
+use shared::EncryptedData;
+use shared::NonceGen;
+use shared::NonceSequence;
 
 #[derive(Debug, Copy, Clone)]
-pub struct NonceGen([u8; 12]);
-
-impl NonceGen {
-    fn new() -> Self {
-        let r = SystemRandom::new();
-        let mut nonce = [0u8; 12];
-        r.fill(&mut nonce).unwrap();
-        NonceGen(nonce)
-    }
-}
-
-impl NonceSequence for NonceGen {
-    fn advance(&mut self) -> Result<Nonce, ring::error::Unspecified> {
-        Nonce::try_assume_unique_for_key(&self.0)
-    }
-}
 
 #[derive(Debug)]
-struct EncryptedData {
-    pub data: Vec<u8>,
-    pub tag: [u8; 16],
-    pub nonce: NonceGen,
-}
 
 fn get_key(key: String) -> UnboundKey {
     let salt = "skibidi toilet".as_bytes(); // static salt
